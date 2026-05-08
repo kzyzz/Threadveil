@@ -539,29 +539,9 @@
     article.dataset.bbHits = scoreInfo.hits.map(h => h.detail).join(', ');
 
     if (cell) {
-      // Measure before hiding (display:none makes offsetHeight 0)
-      const cellH = cell.offsetHeight;
-      const spacerH = spacer ? spacer.offsetHeight : 0;
       cell.classList.add('bb-blocked');
       if (spacer) spacer.classList.add('bb-blocked');
-
-      // Shift all subsequent cells up to close the gap
-      const totalH = cellH + spacerH;
-      if (totalH > 0) {
-        let next = cell.nextElementSibling;
-        while (next) {
-          if (next.matches && next.matches('[data-testid="cellInnerDiv"]')) {
-            const t = next.style.transform;
-            if (t) {
-              const m = t.match(/translateY\((\d+(?:\.\d+)?)px\)/);
-              if (m) next.style.transform = 'translateY(' + (parseFloat(m[1]) - totalH) + 'px)';
-            }
-          }
-          next = next.nextElementSibling;
-        }
-      }
     } else {
-      // Fallback: no cellInnerDiv found — hide article directly
       article.style.display = 'none';
     }
 
@@ -853,6 +833,10 @@
     if (!settings.enabled) return;
     if (article.dataset.bbBlocked === '1') return;
     if (!article.querySelector('[data-testid="User-Name"]')) return;
+
+    // Skip if this article is inside an already-blocked cell (virtual list recycle)
+    const parentCell = article.closest('[data-testid="cellInnerDiv"]');
+    if (parentCell && parentCell.classList.contains('bb-blocked')) return;
 
     const info = extractTweetInfo(article);
     addInlineButtons(article, info);
