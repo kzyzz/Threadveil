@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Bot Blocker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 360px;
+      min-height: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      background: #15202b;
+      color: #e7e9ea;
+      padding: 12px;
+    }
+    h1 { font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+    /* Toggle switch */
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #3e4144; border-radius: 22px; transition: .2s; }
+    .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: #1d9bf0; }
+    input:checked + .slider::before { transform: translateX(18px); }
+
+    /* Add rule form */
+    .add-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding: 8px; background: #1e2732; border-radius: 8px; }
+    .add-form input, .add-form select { padding: 6px 8px; border-radius: 4px; border: 1px solid #3e4144; background: #15202b; color: #e7e9ea; font-size: 12px; }
+    .add-form select { cursor: pointer; }
+    .add-form .row { display: flex; gap: 6px; align-items: center; }
+    .add-form .row input[type="text"] { flex: 1; }
+    .add-form button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-add { background: #1d9bf0; color: #fff; }
+    .btn-add:hover { background: #1a8cd8; }
+
+    /* Rules list */
+    .rules-list { max-height: 280px; overflow-y: auto; }
+    .rules-list::-webkit-scrollbar { width: 4px; }
+    .rules-list::-webkit-scrollbar-thumb { background: #3e4144; border-radius: 2px; }
+
+    .rule-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; margin-bottom: 4px;
+      background: #1e2732; border-radius: 6px;
+    }
+    .rule-item.disabled { opacity: 0.4; }
+    .rule-type {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 3px; flex-shrink: 0; min-width: 56px; text-align: center;
+    }
+    .type-username { background: #1d9bf0; color: #fff; }
+    .type-text { background: #00ba7c; color: #fff; }
+    .type-bio { background: #f91880; color: #fff; }
+    .rule-pattern {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-family: "SF Mono", "Consolas", monospace; font-size: 11px;
+    }
+    .rule-item button {
+      background: none; border: none; color: #71767b; cursor: pointer; font-size: 14px;
+      padding: 2px 4px; line-height: 1;
+    }
+    .rule-item button:hover { color: #f4212e; }
+    .rule-item .btn-toggle { color: #71767b; }
+    .rule-item .btn-toggle:hover { color: #1d9bf0; }
+
+    .empty-hint { text-align: center; color: #71767b; padding: 20px; font-size: 12px; }
+
+    /* Footer */
+    .footer { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+    .footer button { padding: 4px 8px; border: 1px solid #3e4144; border-radius: 4px; background: transparent; color: #71767b; cursor: pointer; font-size: 11px; }
+    .footer button:hover { border-color: #1d9bf0; color: #1d9bf0; }
+
+    label { font-size: 11px; color: #71767b; user-select: none; }
+  </style>
+</head>
+<body>
+  <h1>🛡 Bot Blocker</h1>
+
+  <div class="toggle-row">
+    <span>Enable blocking</span>
+    <label class="switch">
+      <input type="checkbox" id="globalEnabled" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="add-form">
+    <div class="row">
+      <select id="ruleType">
+        <option value="username">Username</option>
+        <option value="text">Comment</option>
+        <option value="bio">Bio</option>
+      </select>
+      <input type="text" id="rulePattern" placeholder="Pattern (regex supported)">
+      <button class="btn-add" id="btnAdd">Add</button>
+    </div>
+    <label><input type="checkbox" id="caseSensitive"> Case sensitive</label>
+  </div>
+
+  <div class="rules-list" id="rulesList"></div>
+  <div class="empty-hint" id="emptyHint">No rules yet. Add one above.</div>
+
+  <div class="footer">
+    <button id="btnExport">Export</button>
+    <button id="btnImport">Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+    <button id="btnClear" style="color:#f4212e;border-color:#f4212e;">Clear All</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
