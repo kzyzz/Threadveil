@@ -1,31 +1,4 @@
-/* --- Blocked tweet styles --- */
-.bb-blocked-tweet {
-  opacity: 0.15;
-  transition: opacity 0.2s;
-  pointer-events: none;
-  user-select: none;
-}
-.bb-blocked-tweet:hover {
-  opacity: 0.4;
-}
-
-/* --- Blocked tweet label --- */
-.bb-blocked-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.75);
-  color: #ccc;
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  z-index: 9999;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-/* --- Toggle overlay on blocked tweets --- */
+/* ==================== Stats badge (top-right corner) ==================== */
 .bb-stats-badge {
   position: fixed;
   top: 8px;
@@ -34,13 +7,105 @@
   background: #1d9bf0;
   color: #fff;
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 9999px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.75;
   transition: opacity 0.2s;
 }
-.bb-stats-badge:hover {
-  opacity: 1;
+.bb-stats-badge:hover { opacity: 1; }
+
+/* ==================== Inline block button ==================== */
+.bb-inline-block-btn {
+  background: none;
+  border: 1px solid #f4212e;
+  color: #f4212e;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1.2;
+}
+.bb-inline-block-btn:hover {
+  background: #f4212e;
+  color: #fff;
+}
+
+/* ==================== Floating "add keyword" button ==================== */
+.bb-float-btn {
+  position: fixed;
+  z-index: 999999;
+  background: #1d9bf0;
+  color: #fff;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bb-float-btn:hover { background: #1a8cd8; }
+.bb-float-btn span { font-weight: 600; }
+.bb-float-btn em {
+  font-style: normal;
+  color: rgba(255,255,255,0.75);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==================== Toast ==================== */
+.bb-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1d9bf0;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  z-index: 999999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.bb-toast.bb-toast-show { opacity: 1; }
+
+/* ==================== Score badge (shown when blocking off) ==================== */
+.bb-score-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  background: #f4212e;
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: default;
+  white-space: nowrap;
+}
+.bb-score-badge:hover {
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.bb-score-badge .bb-score-detail {
+  display: none;
+  font-size: 10px;
+  color: rgba(255,255,255,0.85);
+  margin-left: 6px;
+}
+.bb-score-badge:hover .bb-score-detail {
+  display: inline;
 }

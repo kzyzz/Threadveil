@@ -6,18 +6,39 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 360px;
-      min-height: 300px;
+      width: 380px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 13px;
       background: #15202b;
       color: #e7e9ea;
-      padding: 12px;
+      padding: 0;
+      max-height: 520px;
+      overflow-y: auto;
     }
-    h1 { font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    body::-webkit-scrollbar { width: 4px; }
+    body::-webkit-scrollbar-thumb { background: #3e4144; border-radius: 2px; }
 
-    /* Toggle switch */
+    /* --- Header --- */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px 8px;
+      position: sticky; top: 0; background: #15202b; z-index: 10;
+      border-bottom: 1px solid #2f3336;
+    }
+    .header h1 { font-size: 15px; display: flex; align-items: center; gap: 6px; }
+
+    /* --- Sections --- */
+    .section {
+      padding: 10px 14px;
+      border-bottom: 1px solid #2f3336;
+    }
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      color: #71767b; margin-bottom: 8px; letter-spacing: 0.5px;
+    }
+
+    /* --- Toggle --- */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
     .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; inset: 0; background: #3e4144; border-radius: 22px; transition: .2s; }
@@ -25,88 +46,218 @@
     input:checked + .slider { background: #1d9bf0; }
     input:checked + .slider::before { transform: translateX(18px); }
 
-    /* Add rule form */
-    .add-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding: 8px; background: #1e2732; border-radius: 8px; }
-    .add-form input, .add-form select { padding: 6px 8px; border-radius: 4px; border: 1px solid #3e4144; background: #15202b; color: #e7e9ea; font-size: 12px; }
-    .add-form select { cursor: pointer; }
-    .add-form .row { display: flex; gap: 6px; align-items: center; }
-    .add-form .row input[type="text"] { flex: 1; }
-    .add-form button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
-    .btn-add { background: #1d9bf0; color: #fff; }
-    .btn-add:hover { background: #1a8cd8; }
+    /* --- Threshold slider --- */
+    .threshold-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+    .threshold-row input[type="range"] { flex: 1; accent-color: #1d9bf0; }
+    .threshold-val {
+      font-weight: 700; font-size: 18px; min-width: 24px; text-align: center;
+      color: #1d9bf0;
+    }
+    .threshold-label { font-size: 11px; color: #71767b; }
 
-    /* Rules list */
-    .rules-list { max-height: 280px; overflow-y: auto; }
+    /* --- Keywords --- */
+    .kw-input-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .kw-input-row input {
+      flex: 1; padding: 6px 8px; border-radius: 4px; border: 1px solid #3e4144;
+      background: #1e2732; color: #e7e9ea; font-size: 12px;
+    }
+    .kw-input-row input::placeholder { color: #555; }
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-primary { background: #1d9bf0; color: #fff; }
+    .btn-primary:hover { background: #1a8cd8; }
+    .btn-sm { padding: 3px 8px; font-size: 10px; }
+    .btn-danger { background: transparent; border: 1px solid #f4212e; color: #f4212e; }
+    .btn-danger:hover { background: #f4212e; color: #fff; }
+    .btn-ghost { background: transparent; border: 1px solid #3e4144; color: #71767b; }
+    .btn-ghost:hover { border-color: #1d9bf0; color: #1d9bf0; }
+
+    /* Keywords tags */
+    .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag {
+      display: flex; align-items: center; gap: 4px;
+      padding: 2px 8px; background: #1e2732; border-radius: 9999px;
+      font-size: 11px; border: 1px solid #2f3336;
+    }
+    .tag button {
+      background: none; border: none; color: #71767b; cursor: pointer;
+      font-size: 12px; padding: 0; line-height: 1;
+    }
+    .tag button:hover { color: #f4212e; }
+
+    /* --- Rules list --- */
+    .rules-list { max-height: 160px; overflow-y: auto; }
     .rules-list::-webkit-scrollbar { width: 4px; }
     .rules-list::-webkit-scrollbar-thumb { background: #3e4144; border-radius: 2px; }
 
     .rule-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 8px; margin-bottom: 4px;
-      background: #1e2732; border-radius: 6px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; margin-bottom: 3px;
+      background: #1e2732; border-radius: 4px; font-size: 11px;
     }
     .rule-item.disabled { opacity: 0.4; }
-    .rule-type {
+    .rule-type-tag {
       font-size: 10px; font-weight: 700; text-transform: uppercase;
-      padding: 2px 6px; border-radius: 3px; flex-shrink: 0; min-width: 56px; text-align: center;
+      padding: 1px 5px; border-radius: 3px; flex-shrink: 0; min-width: 48px; text-align: center;
     }
     .type-username { background: #1d9bf0; color: #fff; }
-    .type-text { background: #00ba7c; color: #fff; }
-    .type-bio { background: #f91880; color: #fff; }
+    .type-text    { background: #00ba7c; color: #fff; }
+    .type-bio     { background: #f91880; color: #fff; }
     .rule-pattern {
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      font-family: "SF Mono", "Consolas", monospace; font-size: 11px;
+      font-family: "SF Mono", "Consolas", monospace;
     }
-    .rule-item button {
-      background: none; border: none; color: #71767b; cursor: pointer; font-size: 14px;
-      padding: 2px 4px; line-height: 1;
+    .rule-item .btn-icon {
+      background: none; border: none; color: #71767b; cursor: pointer;
+      font-size: 13px; padding: 2px; line-height: 1;
     }
-    .rule-item button:hover { color: #f4212e; }
-    .rule-item .btn-toggle { color: #71767b; }
-    .rule-item .btn-toggle:hover { color: #1d9bf0; }
+    .rule-item .btn-icon:hover { color: #f4212e; }
 
-    .empty-hint { text-align: center; color: #71767b; padding: 20px; font-size: 12px; }
+    .add-form { display: flex; gap: 4px; margin-bottom: 8px; }
+    .add-form select {
+      padding: 5px; border-radius: 4px; border: 1px solid #3e4144;
+      background: #1e2732; color: #e7e9ea; font-size: 11px; cursor: pointer;
+    }
+    .add-form input[type="text"] {
+      flex: 1; padding: 5px 8px; border-radius: 4px; border: 1px solid #3e4144;
+      background: #1e2732; color: #e7e9ea; font-size: 11px;
+    }
 
-    /* Footer */
-    .footer { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
-    .footer button { padding: 4px 8px; border: 1px solid #3e4144; border-radius: 4px; background: transparent; color: #71767b; cursor: pointer; font-size: 11px; }
-    .footer button:hover { border-color: #1d9bf0; color: #1d9bf0; }
+    /* --- Footer --- */
+    .footer {
+      display: flex; gap: 6px; padding: 10px 14px; justify-content: flex-end;
+    }
 
-    label { font-size: 11px; color: #71767b; user-select: none; }
+    /* --- Preset chips --- */
+    .preset-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .preset-chip {
+      font-size: 10px; padding: 3px 8px; border-radius: 9999px;
+      background: #1e2732; border: 1px solid #2f3336; color: #e7e9ea;
+      cursor: pointer; white-space: nowrap;
+    }
+    .preset-chip:hover { border-color: #1d9bf0; color: #1d9bf0; }
+    .preset-chip.active { background: #1d9bf0; border-color: #1d9bf0; color: #fff; }
+
+    .empty { text-align: center; color: #555; padding: 10px; font-size: 11px; }
+
+    label.small { font-size: 11px; color: #71767b; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    /* --- Weights --- */
+    .weights-list { max-height: 220px; overflow-y: auto; }
+    .weights-list::-webkit-scrollbar { width: 4px; }
+    .weights-list::-webkit-scrollbar-thumb { background: #3e4144; border-radius: 2px; }
+    .weight-row { display: flex; align-items: center; gap: 4px; padding: 1px 0; }
+    .weight-label {
+      font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .weight-row input[type="range"] { width: 80px; accent-color: #1d9bf0; }
+    .weight-row input[type="range"].zero { accent-color: #f4212e; }
+    .weight-val {
+      font-size: 11px; font-weight: 700; min-width: 14px; text-align: center;
+    }
+    .weight-reset { font-size: 10px; color: #1d9bf0; cursor: pointer; }
+    .weight-reset:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <h1>🛡 Bot Blocker</h1>
-
-  <div class="toggle-row">
-    <span>Enable blocking</span>
+  <!-- Header -->
+  <div class="header">
+    <h1>🛡 Bot Blocker</h1>
     <label class="switch">
       <input type="checkbox" id="globalEnabled" checked>
       <span class="slider"></span>
     </label>
   </div>
 
-  <div class="add-form">
-    <div class="row">
-      <select id="ruleType">
-        <option value="username">Username</option>
-        <option value="text">Comment</option>
-        <option value="bio">Bio</option>
-      </select>
-      <input type="text" id="rulePattern" placeholder="Pattern (regex supported)">
-      <button class="btn-add" id="btnAdd">Add</button>
+  <!-- 评分设置 -->
+  <div class="section">
+    <div class="section-title">⚙️ 评分设置</div>
+    <div class="toggle-row">
+      <span>启发式检测</span>
+      <label class="switch">
+        <input type="checkbox" id="useHeuristic" checked>
+        <span class="slider"></span>
+      </label>
     </div>
-    <label><input type="checkbox" id="caseSensitive"> Case sensitive</label>
+    <div class="threshold-row">
+      <span class="threshold-label">屏蔽阈值</span>
+      <input type="range" id="threshold" min="3" max="10" value="5" step="1">
+      <span class="threshold-val" id="thresholdVal">5</span>
+    </div>
+    <div style="font-size:10px;color:#555;margin-top:4px;">
+      分数 ≥ 阈值 → 半透明隐藏（点击风险标记可展开查看）
+    </div>
   </div>
 
-  <div class="rules-list" id="rulesList"></div>
-  <div class="empty-hint" id="emptyHint">No rules yet. Add one above.</div>
+  <!-- 关键词 -->
+  <div class="section">
+    <div class="section-title">🔑 敏感关键词（每命中一个 +3分）</div>
+    <div class="kw-input-row">
+      <input type="text" id="kwInput" placeholder="例如：私信我、看主页、哥哥...">
+      <button class="btn btn-primary btn-sm" id="btnAddKw">添加</button>
+    </div>
+    <div class="tags" id="kwTags"></div>
+    <div style="margin-top:6px;font-size:10px;color:#555;">
+      提示：在推文页面选中文字即可快速添加关键词
+    </div>
+  </div>
 
+  <!-- 快速预设 -->
+  <div class="section">
+    <div class="section-title">📋 快速添加预设</div>
+    <div class="preset-chips" id="presetChips">
+      <span class="preset-chip" data-preset="私信">私信</span>
+      <span class="preset-chip" data-preset="看主页">看主页</span>
+      <span class="preset-chip" data-preset="哥哥">哥哥</span>
+      <span class="preset-chip" data-preset="湿了">湿了</span>
+      <span class="preset-chip" data-preset="免费">免费</span>
+      <span class="preset-chip" data-preset="求抱">求抱</span>
+      <span class="preset-chip" data-preset="约会">约会</span>
+      <span class="preset-chip" data-preset="寂寞">寂寞</span>
+      <span class="preset-chip" data-preset="想要">想要</span>
+      <span class="preset-chip" data-preset="陪我">陪我</span>
+      <span class="preset-chip" data-preset="裸">裸</span>
+      <span class="preset-chip" data-preset="骚">骚</span>
+      <span class="preset-chip" data-preset="涩">涩</span>
+      <span class="preset-chip" data-preset="破处">破处</span>
+      <span class="preset-chip" data-preset="大秀">大秀</span>
+      <span class="preset-chip" data-preset="比她好看">比她好看</span>
+      <span class="preset-chip" data-preset="t.me">t.me</span>
+      <span class="preset-chip" data-preset="onlyfans">onlyfans</span>
+    </div>
+  </div>
+
+  <!-- 自定义正则 -->
+  <div class="section">
+    <div class="section-title">📝 自定义正则规则（直接硬屏蔽）</div>
+    <div class="add-form">
+      <select id="ruleType">
+        <option value="username">用户名</option>
+        <option value="text">内容</option>
+        <option value="bio">简介</option>
+      </select>
+      <input type="text" id="rulePattern" placeholder="正则表达式...">
+      <button class="btn btn-primary btn-sm" id="btnAddRule">+</button>
+    </div>
+    <label class="small" style="margin-bottom:6px;">
+      <input type="checkbox" id="caseSensitive"> 区分大小写
+    </label>
+    <div class="rules-list" id="rulesList"></div>
+    <div class="empty" id="rulesEmpty">暂无自定义规则</div>
+  </div>
+
+  <!-- 规则权重 -->
+  <div class="section">
+    <div class="section-title">📊 规则权重 <span class="weight-reset" id="btnResetWeights">恢复默认</span></div>
+    <div class="weights-list" id="weightsList"></div>
+    <div style="font-size:10px;color:#555;margin-top:4px;">拖动滑块调整每条规则的权重，设为 0 则禁用</div>
+  </div>
+
+  <!-- 底部 -->
   <div class="footer">
-    <button id="btnExport">Export</button>
-    <button id="btnImport">Import</button>
+    <button class="btn btn-ghost btn-sm" id="btnExport">导出</button>
+    <button class="btn btn-ghost btn-sm" id="btnImport">导入</button>
     <input type="file" id="importFile" accept=".json" style="display:none">
-    <button id="btnClear" style="color:#f4212e;border-color:#f4212e;">Clear All</button>
+    <button class="btn btn-danger btn-sm" id="btnClear">全部清除</button>
   </div>
 
   <script src="popup.js"></script>

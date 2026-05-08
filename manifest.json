@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "X/Twitter Bot Blocker",
+  "name": "X/Twitter 机器人屏蔽器",
   "version": "1.0",
-  "description": "Block spam bots on X/Twitter by username, comment, or bio patterns (regex supported).",
+  "description": "按用户名、评论内容、简介等规则屏蔽 X/Twitter 上的垃圾机器人（支持正则）",
   "permissions": ["storage"],
   "host_permissions": ["https://x.com/*", "https://twitter.com/*", "https://api.x.com/*"],
   "content_scripts": [
     {
-      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "matches": ["https://x.com/*/status/*", "https://twitter.com/*/status/*"],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"
@@ -15,7 +15,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Bot Blocker"
+    "default_title": "机器人屏蔽器"
   },
   "icons": {
     "16": "icons/icon16.png",
