@@ -1,3 +1,8 @@
+/* ==================== Blocked cell (CSS class beats inline styles) ==================== */
+[data-testid="cellInnerDiv"].bb-blocked {
+  display: none !important;
+}
+
 /* ==================== Stats badge (top-right corner) ==================== */
 .bb-stats-badge {
   position: fixed;
@@ -109,3 +114,66 @@
 .bb-score-badge:hover .bb-score-detail {
   display: inline;
 }
+
+/* ==================== Debug mode ==================== */
+
+/* Debug panel — floating stats overlay */
+.bb-debug-panel {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 100000;
+  background: rgba(0, 0, 0, 0.88);
+  color: #0f0;
+  font-size: 10px;
+  font-family: "SF Mono", "Consolas", monospace;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #0f0;
+  max-width: 300px;
+  pointer-events: none;
+  line-height: 1.5;
+}
+
+/* Score badge shown on every tweet in debug mode */
+.bb-debug-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: "SF Mono", "Consolas", monospace;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #fff;
+}
+.bb-debug-badge.bb-debug-danger  { background: #f4212e; }
+.bb-debug-badge.bb-debug-warn    { background: #e8a317; }
+.bb-debug-badge.bb-debug-safe    { background: #00ba7c; }
+.bb-debug-badge.bb-debug-blocked { background: #f4212e; font-weight: 700; }
+
+.bb-debug-badge:hover {
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.bb-debug-badge .bb-debug-detail {
+  display: none;
+  font-size: 10px;
+  color: rgba(255,255,255,0.85);
+  margin-left: 6px;
+}
+.bb-debug-badge:hover .bb-debug-detail {
+  display: inline;
+}
+
+/* Colored left border on articles in debug mode */
+article[data-testid="tweet"].bb-debug-border {
+  border-left: 3px solid transparent !important;
+}
+article[data-testid="tweet"].bb-debug-danger  { border-left-color: #f4212e !important; }
+article[data-testid="tweet"].bb-debug-warn    { border-left-color: #e8a317 !important; }
+article[data-testid="tweet"].bb-debug-safe    { border-left-color: #00ba7c !important; }
+article[data-testid="tweet"].bb-debug-blocked { border-left-color: #f4212e !important; background: rgba(244,33,46,0.08) !important; }

@@ -8,12 +8,14 @@
     enabled: true,
     threshold: 6,
     useHeuristic: true,
+    debug: false,
     customKeywords: [],
     rules: [],
     signalWeights: {},
   };
 
   const SIGNAL_META = [
+    { id: 'emojiMidWordRe', label: '词中夹emoji(正则)', def: 6 },
     { id: 'midWordEmoji', label: '词中夹emoji', def: 5 },
     { id: 'emojiOverload', label: '大量emoji(≥8)', def: 5 },
     { id: 'emojiSeparatedMention', label: '模板文案+emoji+@', def: 6 },
@@ -29,6 +31,7 @@
     { id: 'handleStartsWithNumber', label: '数字前缀用户名', def: 2 },
     { id: 'emojiName', label: '名称含大量emoji', def: 2 },
     { id: 'unicodeDeco', label: 'Unicode装饰', def: 2 },
+    { id: 'extremeContent', label: '敏感内容检测', def: 6 },
     { id: 'atMentions', label: '多次@他人', def: 1 },
     { id: 'shortReply', label: '短句回复', def: 1 },
   ];
@@ -38,6 +41,7 @@
       enabled: settings.enabled,
       threshold: settings.threshold,
       useHeuristic: settings.useHeuristic,
+      debug: settings.debug,
       customKeywords: settings.customKeywords,
       rules: settings.rules,
       signalWeights: settings.signalWeights,
@@ -47,6 +51,12 @@
   // ======================== GLOBAL TOGGLE ========================
   $('#globalEnabled').addEventListener('change', () => {
     settings.enabled = $('#globalEnabled').checked;
+    save();
+  });
+
+  // ======================== DEBUG TOGGLE ========================
+  $('#debugMode').addEventListener('change', () => {
+    settings.debug = $('#debugMode').checked;
     save();
   });
 
@@ -293,6 +303,7 @@
 
   function refreshUI() {
     $('#globalEnabled').checked = settings.enabled;
+    $('#debugMode').checked = settings.debug;
     $('#useHeuristic').checked = settings.useHeuristic;
     $('#threshold').value = settings.threshold;
     $('#thresholdVal').textContent = settings.threshold;
@@ -305,12 +316,13 @@
   // ======================== INIT ========================
   function init() {
     chrome.storage.sync.get([
-      'enabled', 'threshold', 'useHeuristic',
+      'enabled', 'threshold', 'useHeuristic', 'debug',
       'customKeywords', 'rules', 'signalWeights'
     ], (data) => {
       settings.enabled = data.enabled !== undefined ? data.enabled : true;
       settings.threshold = data.threshold || 5;
       settings.useHeuristic = data.useHeuristic !== false;
+      settings.debug = data.debug === true;
       settings.customKeywords = data.customKeywords || [];
       settings.rules = data.rules || [];
       settings.signalWeights = data.signalWeights || {};
