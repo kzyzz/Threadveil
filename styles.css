@@ -1,5 +1,6 @@
 /* ==================== Blocked cell (CSS class beats inline styles) ==================== */
-[data-testid="cellInnerDiv"].bb-blocked {
+[data-testid="cellInnerDiv"].bb-blocked,
+[data-testid="cellInnerDiv"].bb-blocked-spacer {
   display: none !important;
 }
 

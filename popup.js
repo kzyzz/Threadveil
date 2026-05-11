@@ -244,8 +244,10 @@
   // ======================== IMPORT / EXPORT ========================
   $('#btnExport').addEventListener('click', () => {
     const data = {
+      enabled: settings.enabled,
       threshold: settings.threshold,
       useHeuristic: settings.useHeuristic,
+      debug: settings.debug,
       customKeywords: settings.customKeywords,
       rules: settings.rules,
       signalWeights: settings.signalWeights,
@@ -268,8 +270,10 @@
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target.result);
+        if (data.enabled !== undefined) settings.enabled = data.enabled;
         if (data.threshold !== undefined) settings.threshold = data.threshold;
         if (data.useHeuristic !== undefined) settings.useHeuristic = data.useHeuristic;
+        if (data.debug !== undefined) settings.debug = data.debug === true;
         if (Array.isArray(data.customKeywords)) settings.customKeywords = data.customKeywords;
         if (Array.isArray(data.rules)) settings.rules = data.rules;
         if (data.signalWeights && typeof data.signalWeights === 'object') settings.signalWeights = data.signalWeights;

@@ -13,6 +13,7 @@
   };
   let blockedCount = 0;
   let badgeEl = null;
+  let mainAuthorHandle = '';
 
   // ======================== SIGNAL DEFINITIONS ========================
   // Each signal returns { hit: bool, weight: number, detail: string }
@@ -397,11 +398,15 @@
     }
     // Settings changed — unblock previously hidden cells so they get re-evaluated
     blockedCount = 0;
-    document.querySelectorAll('[data-testid="cellInnerDiv"].bb-blocked').forEach(el => {
-      el.classList.remove('bb-blocked');
+    document.querySelectorAll('[data-testid="cellInnerDiv"].bb-blocked, [data-testid="cellInnerDiv"].bb-blocked-spacer').forEach(el => {
+      el.classList.remove('bb-blocked', 'bb-blocked-spacer');
     });
     document.querySelectorAll('article[data-testid="tweet"]').forEach(el => {
       el.dataset.bbBlocked = '0';
+      el.dataset.bbRevealed = '0';
+      el.classList.remove('bb-blocked');
+      removeBlockCard(el);
+      el.style.display = '';
     });
     scheduleScan();
   });
@@ -535,52 +540,72 @@
     const [cell, spacer] = getCellDivs(article);
 
     article.dataset.bbBlocked = '1';
+    article.dataset.bbRevealed = '0';
     article.dataset.bbScore = scoreInfo.score;
     article.dataset.bbHits = scoreInfo.hits.map(h => h.detail).join(', ');
 
     if (cell) {
       cell.classList.add('bb-blocked');
-      if (spacer) spacer.classList.add('bb-blocked');
+      if (spacer) spacer.classList.add('bb-blocked-spacer');
     } else {
       article.style.display = 'none';
     }
 
     blockedCount++;
+    updateBadge();
   }
 
   function unblockTweet(article) {
     if (article.dataset.bbBlocked !== '1') return;
     article.dataset.bbBlocked = '0';
+    article.dataset.bbRevealed = '1';
+    removeBlockCard(article);
+    article.style.display = '';
     const cell = article.closest('[data-testid="cellInnerDiv"]');
     if (cell) {
       cell.classList.remove('bb-blocked');
       const prev = cell.previousElementSibling;
-      if (prev && prev.matches && prev.matches('[data-testid="cellInnerDiv"]') && prev.classList.contains('bb-blocked')) {
-        prev.classList.remove('bb-blocked');
+      if (prev && prev.matches && prev.matches('[data-testid="cellInnerDiv"]') && prev.classList.contains('bb-blocked-spacer')) {
+        prev.classList.remove('bb-blocked-spacer');
       }
     }
+    article.classList.remove('bb-blocked');
+    blockedCount = Math.max(0, blockedCount - 1);
+    updateBadge();
   }
 
   function unblockAll() {
-    document.querySelectorAll('[data-testid="cellInnerDiv"].bb-blocked').forEach(el => {
-      el.classList.remove('bb-blocked');
+    document.querySelectorAll('[data-testid="cellInnerDiv"].bb-blocked, [data-testid="cellInnerDiv"].bb-blocked-spacer').forEach(el => {
+      el.classList.remove('bb-blocked', 'bb-blocked-spacer');
     });
     document.querySelectorAll('article[data-testid="tweet"]').forEach(el => {
       el.dataset.bbBlocked = '0';
+      el.dataset.bbRevealed = '0';
+      el.classList.remove('bb-blocked');
+      removeBlockCard(el);
+      el.style.display = '';
     });
     blockedCount = 0;
     updateBadge();
   }
 
   function showBadgesOnBlocked() {
-    document.querySelectorAll('[data-testid="cellInnerDiv"].bb-blocked').forEach(el => {
-      el.classList.remove('bb-blocked');
+    document.querySelectorAll('[data-testid="cellInnerDiv"].bb-blocked, [data-testid="cellInnerDiv"].bb-blocked-spacer').forEach(el => {
+      el.classList.remove('bb-blocked', 'bb-blocked-spacer');
     });
     document.querySelectorAll('article[data-testid="tweet"][data-bb-blocked="1"]').forEach(article => {
+      article.dataset.bbRevealed = '1';
+      article.classList.remove('bb-blocked');
+      removeBlockCard(article);
+      article.style.display = '';
       addScoreBadge(article);
     });
     blockedCount = 0;
     updateBadge();
+  }
+
+  function removeBlockCard(article) {
+    article.querySelectorAll(':scope > .bb-block-card').forEach(el => el.remove());
   }
 
   function addScoreBadge(article) {
@@ -597,6 +622,7 @@
     document.querySelectorAll('.bb-score-badge').forEach(el => el.remove());
     document.querySelectorAll('article[data-testid="tweet"][data-bb-blocked="1"]').forEach(el => {
       el.dataset.bbBlocked = '0';
+      el.dataset.bbRevealed = '0';
     });
   }
 
@@ -633,6 +659,7 @@
     document.querySelectorAll('.bb-debug-badge').forEach(el => el.remove());
     document.querySelectorAll('article.bb-debug-border, article.bb-debug-danger, article.bb-debug-warn, article.bb-debug-safe, article.bb-debug-blocked').forEach(el => {
       el.classList.remove('bb-debug-border', 'bb-debug-danger', 'bb-debug-warn', 'bb-debug-safe', 'bb-debug-blocked');
+      delete el.dataset.bbDebugWouldBlock;
     });
   }
 
@@ -828,17 +855,104 @@
     return firstArticleCache;
   }
 
+  function normalizeHandle(handle) {
+    return (handle || '').trim().replace(/^@/, '').toLowerCase();
+  }
+
+  function getMainAuthorHandle() {
+    const main = getFirstArticle();
+    if (!main) return '';
+    if (!mainAuthorHandle) {
+      mainAuthorHandle = normalizeHandle(extractTweetInfo(main).handle);
+    }
+    return mainAuthorHandle;
+  }
+
+  function getNextArticle(article) {
+    const [cell] = getCellDivs(article);
+    let el = cell ? cell.nextElementSibling : article.parentElement;
+    for (let i = 0; i < 8 && el; i++, el = el.nextElementSibling) {
+      if (el.matches && el.matches('[data-testid="cellInnerDiv"]')) {
+        const nextArticle = el.querySelector('article[data-testid="tweet"]');
+        if (nextArticle) return nextArticle;
+      }
+    }
+    return null;
+  }
+
+  function getPreviousArticle(article) {
+    const [cell] = getCellDivs(article);
+    let el = cell ? cell.previousElementSibling : article.parentElement;
+    for (let i = 0; i < 8 && el; i++, el = el.previousElementSibling) {
+      if (el.matches && el.matches('[data-testid="cellInnerDiv"]')) {
+        const prevArticle = el.querySelector('article[data-testid="tweet"]');
+        if (prevArticle) return prevArticle;
+      }
+    }
+    return null;
+  }
+
+  function revealAuthorReplyTarget(article, info) {
+    const mainHandle = getMainAuthorHandle();
+    if (!mainHandle || normalizeHandle(info.handle) !== mainHandle) return;
+
+    const prevArticle = getPreviousArticle(article);
+    if (!prevArticle || prevArticle === getFirstArticle()) return;
+    if (prevArticle.dataset.bbBlocked === '1') {
+      unblockTweet(prevArticle);
+    }
+    prevArticle.dataset.bbAuthorProtected = '1';
+  }
+
+  function isAuthorProtected(article, info) {
+    const mainHandle = getMainAuthorHandle();
+    if (!mainHandle) return false;
+    if (normalizeHandle(info.handle) === mainHandle) return true;
+
+    const nextArticle = getNextArticle(article);
+    if (!nextArticle) return false;
+    const nextInfo = extractTweetInfo(nextArticle);
+    return normalizeHandle(nextInfo.handle) === mainHandle;
+  }
+
   // Process a single article (called synchronously from observer — zero flash)
   function processArticle(article) {
     if (!settings.enabled) return;
-    if (article.dataset.bbBlocked === '1') return;
     if (!article.querySelector('[data-testid="User-Name"]')) return;
 
-    // Skip if this article is inside an already-blocked cell (virtual list recycle)
-    const parentCell = article.closest('[data-testid="cellInnerDiv"]');
-    if (parentCell && parentCell.classList.contains('bb-blocked')) return;
-
     const info = extractTweetInfo(article);
+    revealAuthorReplyTarget(article, info);
+    const tweetKey = info.handle + '\n' + info.text.slice(0, 160);
+    if (article.dataset.bbTweetKey && article.dataset.bbTweetKey !== tweetKey) {
+      const wasBlocked = article.dataset.bbBlocked === '1';
+      article.dataset.bbBlocked = '0';
+      article.dataset.bbRevealed = '0';
+      article.classList.remove('bb-blocked');
+      removeBlockCard(article);
+      article.style.display = '';
+      const recycledCell = article.closest('[data-testid="cellInnerDiv"]');
+      if (recycledCell) {
+        recycledCell.classList.remove('bb-blocked');
+        const prev = recycledCell.previousElementSibling;
+        if (prev && prev.classList && prev.classList.contains('bb-blocked-spacer')) {
+          prev.classList.remove('bb-blocked-spacer');
+        }
+      }
+      if (wasBlocked) blockedCount = Math.max(0, blockedCount - 1);
+    }
+    article.dataset.bbTweetKey = tweetKey;
+
+    if (article.dataset.bbBlocked === '1') return;
+    if (article.dataset.bbRevealed === '1') return;
+
+    // Twitter recycles virtual-list cells; clear stale block classes before scoring new content.
+    const parentCell = article.closest('[data-testid="cellInnerDiv"]');
+    if (parentCell && parentCell.classList.contains('bb-blocked') && article.dataset.bbBlocked !== '1') {
+      parentCell.classList.remove('bb-blocked');
+      article.classList.remove('bb-blocked');
+      removeBlockCard(article);
+    }
+
     addInlineButtons(article, info);
 
     const result = scoreTweet(info);
@@ -874,6 +988,11 @@
       return;
     }
 
+    if (isAuthorProtected(article, info)) {
+      article.dataset.bbAuthorProtected = '1';
+      return;
+    }
+
     // Reply tweets
     if (settings.debug) {
       // In debug mode: show badge on ALL replies, but don't actually hide
@@ -884,13 +1003,10 @@
       debugStats.lastScore = result.score;
       debugStats.lastHandle = info.handle;
       if (shouldBlock) {
-        // Mark as blocked in our stats but DON'T hide the tweet
-        article.dataset.bbBlocked = '1';
         article.dataset.bbScore = result.score;
         article.dataset.bbHits = result.hits.map(h => h.detail).join(', ');
+        article.dataset.bbDebugWouldBlock = '1';
         debugStats.blocked++;
-        blockedCount++;
-        updateBadge();
       }
       updateDebugPanel();
       return;
@@ -910,6 +1026,7 @@
 
     try {
       firstArticleCache = null;
+      mainAuthorHandle = '';
 
       if (settings.debug) {
         debugStats.scanned = 0;
@@ -1086,6 +1203,11 @@
       if (!tr) { filtered.push(entry); continue; }
 
       const info = extractAPITweetInfo(tr);
+      const mainHandle = getMainAuthorHandle();
+      if (mainHandle && normalizeHandle(info.handle) === mainHandle) {
+        filtered.push(entry);
+        continue;
+      }
       const result = scoreTweet(info);
       if (result.score >= settings.threshold || result.score >= 99) {
         blockedCount++;
