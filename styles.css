@@ -22,25 +22,6 @@
 }
 .bb-stats-badge:hover { opacity: 1; }
 
-/* ==================== Inline block button ==================== */
-.bb-inline-block-btn {
-  background: none;
-  border: 1px solid #f4212e;
-  color: #f4212e;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: 9999px;
-  padding: 2px 8px;
-  margin-left: 4px;
-  opacity: 0;
-  transition: opacity 0.15s;
-  line-height: 1.2;
-}
-.bb-inline-block-btn:hover {
-  background: #f4212e;
-  color: #fff;
-}
-
 /* ==================== Video download button ==================== */
 .bb-media-download-host {
   position: relative !important;

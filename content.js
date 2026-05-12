@@ -709,6 +709,8 @@
 
   // ======================== INLINE BLOCK BUTTON ========================
   function addInlineButtons(article, info) {
+    article.querySelectorAll('.bb-inline-block-btn').forEach(btn => btn.remove());
+    return;
     // Quick block user button
     if (!article.querySelector('.bb-inline-block-btn')) {
       const caretBtn = article.querySelector('[data-testid="caret"]');
