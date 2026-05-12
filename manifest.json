@@ -3,9 +3,15 @@
   "name": "X/Twitter 机器人屏蔽器",
   "version": "1.0",
   "description": "按用户名、评论内容、简介等规则屏蔽 X/Twitter 上的垃圾机器人（支持正则）",
-  "permissions": ["storage"],
+  "permissions": ["storage", "downloads"],
   "host_permissions": ["https://x.com/*", "https://twitter.com/*", "https://api.x.com/*"],
   "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["media-sniffer.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": ["content.js"],
@@ -13,6 +19,9 @@
       "run_at": "document_idle"
     }
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "机器人屏蔽器"

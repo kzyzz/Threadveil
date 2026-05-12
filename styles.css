@@ -41,6 +41,60 @@
   color: #fff;
 }
 
+/* ==================== Video download button ==================== */
+.bb-media-download-host {
+  position: relative !important;
+}
+
+.bb-media-download-wrap {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2147483646;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.bb-media-download-host:hover > .bb-media-download-wrap,
+.bb-media-download-wrap:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bb-media-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  background: rgba(15, 20, 25, 0.72);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(6px);
+}
+
+.bb-media-download-btn:hover {
+  background: rgba(29, 155, 240, 0.9);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.bb-media-download-btn[data-state="loading"] {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.bb-media-download-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
 /* ==================== Floating "add keyword" button ==================== */
 .bb-float-btn {
   position: fixed;

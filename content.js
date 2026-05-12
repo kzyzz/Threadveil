@@ -14,6 +14,7 @@
   let blockedCount = 0;
   let badgeEl = null;
   let mainAuthorHandle = '';
+  const tweetMediaCache = new Map();
 
   // ======================== SIGNAL DEFINITIONS ========================
   // Each signal returns { hit: bool, weight: number, detail: string }
@@ -153,10 +154,10 @@
       return null;
     },
 
-    // Short reply (< 20 chars, excluding spaces)
+    // Short reply (<= 4 chars, excluding spaces)
     shortReply(info) {
       const clean = info.text.replace(/\s/g, '');
-      if (clean.length > 0 && clean.length < 20) {
+      if (clean.length > 0 && clean.length <= 4) {
         return { hit: true, weight: 1, detail: '短句回复' };
       }
       return null;
@@ -843,6 +844,205 @@
     toast._timeout = setTimeout(() => { toast.classList.remove('bb-toast-show'); }, 2000);
   }
 
+  // ======================== MEDIA DOWNLOAD BUTTONS ========================
+  function scanMediaButtons(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const hosts = [];
+
+    if (scope.matches && isVideoHost(scope)) hosts.push(scope);
+    scope.querySelectorAll('[data-testid="videoComponent"], [data-testid="videoPlayer"], video').forEach(el => {
+      const host = getVideoHost(el);
+      if (host && !hosts.includes(host)) hosts.push(host);
+    });
+
+    hosts.forEach(host => {
+      if (host.dataset.bbMediaButton === '1') return;
+      addMediaDownloadButton(host);
+    });
+  }
+
+  function isVideoHost(el) {
+    return el.matches('[data-testid="videoComponent"], [data-testid="videoPlayer"]') ||
+      (el.tagName === 'VIDEO');
+  }
+
+  function getVideoHost(el) {
+    return el.closest('[data-testid="videoComponent"]') ||
+      el.closest('[data-testid="videoPlayer"]') ||
+      (el.tagName === 'VIDEO' ? el.parentElement : null);
+  }
+
+  function addMediaDownloadButton(host) {
+    if (!host || !host.querySelector('video')) return;
+    host.classList.add('bb-media-download-host');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'bb-media-download-wrap';
+    wrap.innerHTML = `
+      <button class="bb-media-download-btn" type="button" aria-label="Download video" title="Download video">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="bb-media-download-icon">
+          <path d="M11 4h2v8.17l3.59-3.58L18 10l-6 6-6-6 1.41-1.41L11 12.17V4zm-5 14h12v2H6v-2z"></path>
+        </svg>
+      </button>
+    `;
+
+    const btn = wrap.querySelector('button');
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      downloadHostMedia(host, btn);
+    });
+
+    host.appendChild(wrap);
+    host.dataset.bbMediaButton = '1';
+  }
+
+  function getStatusIdFromUrl(url) {
+    const m = (url || '').match(/\/status\/(\d+)/);
+    return m ? m[1] : '';
+  }
+
+  function getMediaTweetId(host) {
+    const hinted = host.getAttribute('data-immersive-translate-ai-subtitle-url') ||
+      host.querySelector('[data-immersive-translate-ai-subtitle-url]')?.getAttribute('data-immersive-translate-ai-subtitle-url') ||
+      '';
+    const hintedId = getStatusIdFromUrl(hinted);
+    if (hintedId) return hintedId;
+
+    const quotedLink = host.closest('[role="link"]')?.querySelector('[href*="/status/"]');
+    const quotedId = getStatusIdFromUrl(quotedLink?.getAttribute('href') || '');
+    if (quotedId) return quotedId;
+
+    const article = host.closest('article[data-testid="tweet"]');
+    const articleLink = article ? article.querySelector('a[href*="/status/"]') : null;
+    return getStatusIdFromUrl(articleLink?.getAttribute('href') || '');
+  }
+
+  function getMediaHandle(host) {
+    const hinted = host.getAttribute('data-immersive-translate-ai-subtitle-url') ||
+      host.querySelector('[data-immersive-translate-ai-subtitle-url]')?.getAttribute('data-immersive-translate-ai-subtitle-url') ||
+      '';
+    const hintedHandle = hinted.match(/x\.com\/([^/]+)\/status\//);
+    if (hintedHandle) return hintedHandle[1];
+
+    const article = host.closest('article[data-testid="tweet"]');
+    const link = article ? article.querySelector('[data-testid="User-Name"] a[href^="/"]') : null;
+    return ((link && link.getAttribute('href')) || '/x').split('/').filter(Boolean)[0] || 'x';
+  }
+
+  function getBestHostMedia(host) {
+    const tweetId = getMediaTweetId(host);
+    if (tweetId && tweetMediaCache.has(tweetId)) {
+      return tweetMediaCache.get(tweetId);
+    }
+
+    const mediaId = getHostMediaId(host);
+    if (mediaId && tweetMediaCache.has('media:' + mediaId)) {
+      return tweetMediaCache.get('media:' + mediaId);
+    }
+
+    const urls = [];
+    host.querySelectorAll('video, video source, audio, audio source').forEach(el => {
+      const url = el.currentSrc || el.src || el.getAttribute('src') || '';
+      if (url) urls.push(url);
+    });
+
+    const direct = urls.find(url => /^https?:\/\//i.test(url));
+    const blob = urls.find(url => /^blob:/i.test(url));
+    if (direct) return { url: direct, ext: guessMediaExt(direct), source: 'dom' };
+    if (blob) return { url: blob, ext: 'mp4', source: 'blob' };
+    return null;
+  }
+
+  function getHostMediaId(host) {
+    const poster = host.querySelector('video')?.getAttribute('poster') || '';
+    return extractTwitterMediaId(poster);
+  }
+
+  function extractTwitterMediaId(url) {
+    const m = (url || '').match(/\/(?:amplify_video|amplify_video_thumb|ext_tw_video|ext_tw_video_thumb)\/(\d+)\//);
+    return m ? m[1] : '';
+  }
+
+  function guessMediaExt(url) {
+    if (/\.m3u8(\?|$)/i.test(url)) return 'm3u8';
+    if (/\.mp4(\?|$)/i.test(url)) return 'mp4';
+    if (/\.webm(\?|$)/i.test(url)) return 'webm';
+    if (/\.mov(\?|$)/i.test(url)) return 'mov';
+    return 'mp4';
+  }
+
+  function getMediaFilename(host, media) {
+    const tweetId = getMediaTweetId(host) || Date.now().toString();
+    const handle = getMediaHandle(host).replace(/[\\/:*?"<>|]+/g, '_');
+    const ext = media.ext || guessMediaExt(media.url);
+    return `x-media/${handle}-${tweetId}.${ext}`;
+  }
+
+  function setMediaButtonState(btn, state) {
+    btn.dataset.state = state;
+  }
+
+  function downloadHostMedia(host, btn) {
+    const media = getBestHostMedia(host);
+    if (!media || !media.url) {
+      showToast('No direct video URL yet. Play it or reload, then retry.');
+      return;
+    }
+
+    const filename = getMediaFilename(host, media);
+    setMediaButtonState(btn, 'loading');
+
+    if (/^blob:/i.test(media.url)) {
+      setMediaButtonState(btn, 'idle');
+      showToast('Only a blob stream is visible. Reload/play the tweet and retry.');
+      return;
+    }
+
+    chrome.runtime.sendMessage({
+      type: 'BB_DOWNLOAD_MEDIA',
+      url: media.url,
+      filename,
+    }, (res) => {
+      setMediaButtonState(btn, 'idle');
+      if (chrome.runtime.lastError || !res || !res.ok) {
+        showToast('Download failed: ' + ((res && res.error) || chrome.runtime.lastError?.message || 'unknown error'));
+        return;
+      }
+      showToast('Video download started.');
+    });
+  }
+
+  function setupMediaSnifferBridge() {
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      const data = event.data;
+      if (!data || data.source !== 'BB_MEDIA_SNIFFER' || !Array.isArray(data.items)) return;
+
+      let changed = false;
+      data.items.forEach(item => {
+        if (!item || !item.tweetId || !item.url) return;
+        tweetMediaCache.set(item.tweetId, {
+          url: item.url,
+          ext: item.ext || guessMediaExt(item.url),
+          mediaId: item.mediaId || extractTwitterMediaId(item.url),
+          source: 'sniffer',
+        });
+        if (item.mediaId) {
+          tweetMediaCache.set('media:' + item.mediaId, {
+            url: item.url,
+            ext: item.ext || guessMediaExt(item.url),
+            mediaId: item.mediaId,
+            source: 'sniffer',
+          });
+        }
+        changed = true;
+      });
+
+      if (changed) scanMediaButtons(document);
+    });
+  }
+
   // ======================== SCAN ========================
   let scanTimeout = null;
   let scanning = false;
@@ -1019,6 +1219,7 @@
 
   // Full scan of all articles (initial load, settings change, navigation)
   function scanAll() {
+    scanMediaButtons(document);
     if (!settings.enabled) return;
     if (!isStatusPage()) return;
     if (scanning) return;
@@ -1090,12 +1291,12 @@
   // ======================== MUTATION OBSERVER ========================
   function observe() {
     const mo = new MutationObserver((mutations) => {
-      if (!settings.enabled) return;
-      if (!isStatusPage()) return;
       let found = 0;
       for (const m of mutations) {
         for (const node of m.addedNodes) {
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
+          scanMediaButtons(node);
+          if (!settings.enabled || !isStatusPage()) continue;
           // New article directly added
           if (node.matches && node.matches('article[data-testid="tweet"]')) {
             processArticle(node);
@@ -1186,6 +1387,60 @@
     };
   }
 
+  function cacheTweetMediaFromData(data) {
+    const seen = new Set();
+    walk(data);
+    if (seen.size > 0) setTimeout(() => scanMediaButtons(document), 0);
+
+    function walk(node) {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
+
+      const legacy = node.legacy;
+      const tweetId = node.rest_id || (legacy && legacy.id_str);
+      if (tweetId && legacy) {
+        const media = extractBestMediaVariant(legacy);
+        if (media && !tweetMediaCache.has(tweetId)) {
+          tweetMediaCache.set(tweetId, media);
+          seen.add(tweetId);
+        }
+        if (media && media.mediaId && !tweetMediaCache.has('media:' + media.mediaId)) {
+          tweetMediaCache.set('media:' + media.mediaId, media);
+          seen.add('media:' + media.mediaId);
+        }
+      }
+
+      Object.keys(node).forEach(key => walk(node[key]));
+    }
+  }
+
+  function extractBestMediaVariant(legacy) {
+    const mediaList = []
+      .concat((legacy.extended_entities && legacy.extended_entities.media) || [])
+      .concat((legacy.entities && legacy.entities.media) || []);
+
+    for (const media of mediaList) {
+      const variants = media.video_info && Array.isArray(media.video_info.variants)
+        ? media.video_info.variants
+        : [];
+      const mp4s = variants
+        .filter(v => v && v.url && (!v.content_type || v.content_type === 'video/mp4'))
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+
+      if (mp4s.length > 0) {
+        return { url: mp4s[0].url, ext: 'mp4', source: 'api', mediaId: extractTwitterMediaId(mp4s[0].url) };
+      }
+
+      const hls = variants.find(v => v && v.url && /\.m3u8(\?|$)/i.test(v.url));
+      if (hls) return { url: hls.url, ext: 'm3u8', source: 'api', mediaId: extractTwitterMediaId(hls.url) };
+    }
+
+    return null;
+  }
+
   function filterEntriesArray(entries, mainTweetId) {
     let filtered = [];
     for (const entry of entries) {
@@ -1249,6 +1504,7 @@
     if (!text || text.length < 100) return text;
     try {
       const data = JSON.parse(text);
+      cacheTweetMediaFromData(data);
       const mainTweetId = extractMainTweetId();
       const filtered = walkAndFilter(data, mainTweetId);
       return JSON.stringify(filtered);
@@ -1338,6 +1594,8 @@
     loadSettings();
     observe();
     setupSelectionHandler();
+    setupMediaSnifferBridge();
+    scanMediaButtons(document);
     navCheckTimer = setInterval(checkPageChange, 500);
 
     if (isStatusPage()) {
@@ -1346,6 +1604,7 @@
 
     // Periodic safety-net scan (catches recycled cells, content-only changes)
     setInterval(() => {
+      scanMediaButtons(document);
       if (settings.enabled && isStatusPage()) scanAll();
     }, 10000);
   }
