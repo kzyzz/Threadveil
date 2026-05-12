@@ -1,35 +1,37 @@
 # Threadveil
 
-Threadveil is a small Chrome extension for making X/Twitter threads quieter.
+Threadveil 是一个用于 X/Twitter 的 Chrome 插件，主要用来屏蔽中文黄推、引流号、垃圾回复和低质量评论。
 
-It hides noisy replies with local rules, keyword filters, and lightweight scoring, so a thread feels easier to read.
+它会在本地根据关键词、正则规则和简单评分机制隐藏可疑回复，让推文详情页更干净。
 
-## Install
+## 安装
 
-This extension is meant to be loaded manually.
+这个插件不走 Chrome 商店，手动导入即可。
 
-1. Download or clone this repository.
-2. Open `chrome://extensions/`.
-3. Enable `Developer mode`.
-4. Click `Load unpacked`.
-5. Select the project folder.
-6. Refresh X/Twitter.
+1. 下载或克隆这个仓库。
+2. 打开 `chrome://extensions/`。
+3. 开启右上角的「开发者模式」。
+4. 点击「加载已解压的扩展程序」。
+5. 选择本项目文件夹。
+6. 刷新 X/Twitter 页面。
 
-## What It Does
+## 功能
 
-- Hides likely spam replies on tweet detail pages.
-- Lets you add custom keywords and regex rules.
-- Lets you tune rule weights and the blocking threshold.
-- Provides a debug mode when you want to inspect scoring.
-- Keeps settings in your browser with Chrome extension storage.
+- 屏蔽中文黄推、引流号、垃圾回复。
+- 支持自定义关键词。
+- 支持自定义正则规则。
+- 支持调整屏蔽阈值和规则权重。
+- 支持调试模式，方便查看命中原因。
 
-## Privacy
+## 隐私
 
-Threadveil runs locally in your browser. It does not upload your rules, browsing data, or thread content to a server.
+Threadveil 只在你的浏览器本地运行。
 
-## Development
+你的规则、关键词和设置保存在 Chrome 扩展存储里，不会上传到服务器。
 
-Quick syntax checks:
+## 开发
+
+快速检查脚本语法：
 
 ```bash
 node --check content.js
