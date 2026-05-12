@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "X/Twitter 机器人屏蔽器",
+  "name": "Threadveil",
   "version": "1.0",
-  "description": "按用户名、评论内容、简介等规则屏蔽 X/Twitter 上的垃圾机器人（支持正则）",
+  "description": "A quiet X/Twitter companion for hiding noisy replies with local filters.",
   "permissions": ["storage", "downloads"],
   "host_permissions": ["https://x.com/*", "https://twitter.com/*", "https://api.x.com/*"],
   "content_scripts": [
@@ -24,7 +24,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "机器人屏蔽器"
+    "default_title": "Threadveil"
   },
   "icons": {
     "16": "icons/icon16.png",

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const SOURCE = 'BB_MEDIA_SNIFFER';
+  const SOURCE = 'TV_MEDIA_SNIFFER';
   const originalFetch = window.fetch;
   const OriginalXHR = window.XMLHttpRequest;
 

@@ -1,5 +1,5 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.type !== 'BB_DOWNLOAD_MEDIA') return false;
+  if (!message || message.type !== 'TV_DOWNLOAD_MEDIA') return false;
 
   chrome.downloads.download({
     url: message.url,

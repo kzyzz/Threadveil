@@ -362,7 +362,7 @@
       settings.rules = (data.rules || []).filter(r => r.enabled !== false);
       settings.signalWeights = data.signalWeights || {};
       if (settings.debug) {
-        console.log('%c🐛 Bot Blocker 调试模式已开启 %c阈值=' + settings.threshold,
+        console.log('%cThreadveil debug enabled %cThreshold=' + settings.threshold,
           'color:#0f0;font-size:14px;', 'color:#ccc;');
         showDebugPanel();
       }
@@ -1000,7 +1000,7 @@
     }
 
     chrome.runtime.sendMessage({
-      type: 'BB_DOWNLOAD_MEDIA',
+      type: 'TV_DOWNLOAD_MEDIA',
       url: media.url,
       filename,
     }, (res) => {
@@ -1017,7 +1017,7 @@
     window.addEventListener('message', (event) => {
       if (event.source !== window) return;
       const data = event.data;
-      if (!data || data.source !== 'BB_MEDIA_SNIFFER' || !Array.isArray(data.items)) return;
+      if (!data || data.source !== 'TV_MEDIA_SNIFFER' || !Array.isArray(data.items)) return;
 
       let changed = false;
       data.items.forEach(item => {
@@ -1161,7 +1161,7 @@
     if (settings.debug) {
       const hitList = result.hits.map(h => h.detail + '(' + h.weight + ')').join(', ');
       console.log(
-        '%c[BB] %c' + info.handle + '%c score=' + result.score + ' %c' + (result.score >= settings.threshold ? 'BLOCK' : 'PASS'),
+        '%c[TV] %c' + info.handle + '%c score=' + result.score + ' %c' + (result.score >= settings.threshold ? 'BLOCK' : 'PASS'),
         'color:#1d9bf0;', 'color:#fff;', result.score >= settings.threshold ? 'color:#f4212e;font-weight:bold;' : 'color:#0f0;',
         'color:#888;'
       );
@@ -1232,7 +1232,7 @@
       if (settings.debug) {
         debugStats.scanned = 0;
         debugStats.blocked = 0;
-        console.log('%c[BB] ===== 开始扫描页面 =====', 'color:#1d9bf0;');
+        console.log('%c[TV] ===== scan start =====', 'color:#1d9bf0;');
       }
 
       const articles = document.querySelectorAll('article[data-testid="tweet"]');
@@ -1243,10 +1243,10 @@
       updateBadge();
 
       if (settings.debug) {
-        console.log('%c[BB] ===== 扫描完成: ' + debugStats.scanned + '条, 屏蔽' + debugStats.blocked + '条 =====', 'color:#1d9bf0;');
+        console.log('%c[TV] ===== scan done: ' + debugStats.scanned + ' scanned, ' + debugStats.blocked + ' veiled =====', 'color:#1d9bf0;');
       }
     } catch (e) {
-      if (settings.debug) console.error('[BB] scanAll error:', e);
+      if (settings.debug) console.error('[TV] scanAll error:', e);
     }
     scanning = false;
   }
@@ -1588,7 +1588,7 @@
 
   // ======================== INIT ========================
   function init() {
-    console.log('%c🛡 Bot Blocker v1.0 %c已加载 %c| ' + new Date().toLocaleTimeString(),
+    console.log('%cThreadveil v1.0 %cloaded %c| ' + new Date().toLocaleTimeString(),
       'color:#1d9bf0;font-weight:bold;', 'color:#ccc;', 'color:#888;');
 
     loadSettings();

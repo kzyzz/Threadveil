@@ -256,7 +256,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'bot-blocker-config.json';
+    a.download = 'threadveil-config.json';
     a.click();
     URL.revokeObjectURL(url);
   });
