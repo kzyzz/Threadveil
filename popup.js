@@ -6,17 +6,6 @@
   const defaultRuleConfig = defaults.ruleConfig || {};
   const $ = (sel) => document.querySelector(sel);
 
-  let settings = {
-    enabled: true,
-    threshold: 5,
-    useHeuristic: true,
-    debug: false,
-    customKeywords: [],
-    rules: [],
-    signalWeights: {},
-    ruleConfig: mergeRuleConfig({}),
-  };
-
   const numberFields = [
     'shortReplyMaxChars',
     'anyLinkMaxChars',
@@ -29,6 +18,17 @@
   ];
   const listFields = ['externalLinkPatterns', 'templatePhrases', 'templateRegexes', 'extremeKeywords'];
   const boolFields = ['useDefaultExternalLinks', 'useDefaultTemplates', 'useDefaultExtremeKeywords'];
+
+  let settings = {
+    enabled: true,
+    threshold: 5,
+    useHeuristic: true,
+    debug: false,
+    customKeywords: [],
+    rules: [],
+    signalWeights: {},
+    ruleConfig: mergeRuleConfig({}),
+  };
 
   function mergeRuleConfig(config) {
     const merged = Object.assign({}, defaultRuleConfig, config || {});
