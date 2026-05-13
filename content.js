@@ -16,6 +16,15 @@
   let blockedCount = 0;
   let badgeEl = null;
   let mainAuthorHandle = '';
+  let reportEl = null;
+  let reportOpen = false;
+  let reportStats = {
+    pageKey: '',
+    scanned: 0,
+    hidden: 0,
+    apiHidden: 0,
+    reasons: {},
+  };
   const tweetMediaCache = new Map();
 
   function mergeRuleConfig(config) {
@@ -40,6 +49,45 @@
     } catch (e) {
       return null;
     }
+  }
+
+  function getPageKey() {
+    return location.pathname;
+  }
+
+  function resetReportIfNeeded() {
+    const key = getPageKey();
+    if (reportStats.pageKey === key) return;
+    reportStats = { pageKey: key, scanned: 0, hidden: 0, apiHidden: 0, reasons: {} };
+    reportOpen = false;
+    if (reportEl) reportEl.remove();
+    reportEl = null;
+  }
+
+  function normalizeReason(detail) {
+    return String(detail || '其他命中')
+      .replace(/\s*x\d+$/i, '')
+      .replace(/\(.+?\)$/g, '')
+      .replace(/^regex:\s*/i, '自定义规则: ')
+      .trim() || '其他命中';
+  }
+
+  function recordReportHit(scoreInfo, source) {
+    resetReportIfNeeded();
+    if (source === 'api') reportStats.apiHidden++;
+    else reportStats.hidden++;
+    const hits = (scoreInfo && scoreInfo.hits && scoreInfo.hits.length) ? scoreInfo.hits : [{ detail: '未知规则' }];
+    hits.forEach(hit => {
+      const reason = normalizeReason(hit.detail);
+      reportStats.reasons[reason] = (reportStats.reasons[reason] || 0) + 1;
+    });
+    updateReport();
+  }
+
+  function recordReportScan() {
+    resetReportIfNeeded();
+    reportStats.scanned++;
+    updateReport();
   }
 
   // ======================== SIGNAL DEFINITIONS ========================
@@ -459,6 +507,7 @@
     if (changes.rules) settings.rules = (changes.rules.newValue || []).filter(r => r.enabled !== false);
     if (changes.signalWeights) settings.signalWeights = changes.signalWeights.newValue || {};
     if (changes.ruleConfig) settings.ruleConfig = mergeRuleConfig(changes.ruleConfig.newValue);
+    updateReport();
 
     if (changes.enabled && changes.enabled.newValue === false) {
       showBadgesOnBlocked();
@@ -625,6 +674,7 @@
     }
 
     blockedCount++;
+    recordReportHit(scoreInfo, 'dom');
     updateBadge();
   }
 
@@ -697,6 +747,56 @@
       el.dataset.bbBlocked = '0';
       el.dataset.bbRevealed = '0';
     });
+  }
+
+  // ======================== CLEANUP REPORT ========================
+  function ensureReport() {
+    if (reportEl && document.contains(reportEl)) return reportEl;
+    reportEl = document.createElement('div');
+    reportEl.className = 'tv-report';
+    reportEl.innerHTML = `
+      <button class="tv-report-toggle" type="button" title="查看本帖净化报告">
+        <span class="tv-report-count">0</span>
+        <span class="tv-report-label">已净化</span>
+      </button>
+      <div class="tv-report-panel"></div>
+    `;
+    reportEl.querySelector('.tv-report-toggle').addEventListener('click', () => {
+      reportOpen = !reportOpen;
+      updateReport();
+    });
+    document.body.appendChild(reportEl);
+    return reportEl;
+  }
+
+  function updateReport() {
+    if (!isStatusPage()) {
+      if (reportEl) reportEl.style.display = 'none';
+      return;
+    }
+    const el = ensureReport();
+    const total = reportStats.hidden + reportStats.apiHidden;
+    el.style.display = settings.enabled ? '' : 'none';
+    el.classList.toggle('tv-report-open', reportOpen);
+    el.querySelector('.tv-report-count').textContent = String(total);
+
+    const panel = el.querySelector('.tv-report-panel');
+    const reasons = Object.entries(reportStats.reasons)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+    panel.innerHTML = `
+      <div class="tv-report-title">本帖净化报告</div>
+      <div class="tv-report-grid">
+        <div><b>${reportStats.scanned}</b><span>已扫描</span></div>
+        <div><b>${reportStats.hidden}</b><span>页面隐藏</span></div>
+        <div><b>${reportStats.apiHidden}</b><span>接口过滤</span></div>
+      </div>
+      <div class="tv-report-reasons">
+        ${reasons.length ? reasons.map(([name, count]) => `
+          <div class="tv-report-reason"><span title="${escHtml2(name)}">${escHtml2(name)}</span><b>${count}</b></div>
+        `).join('') : '<div class="tv-report-empty">暂无命中</div>'}
+      </div>
+    `;
   }
 
   // ======================== DEBUG MODE ========================
@@ -1193,6 +1293,7 @@
   function processArticle(article) {
     if (!settings.enabled) return;
     if (!article.querySelector('[data-testid="User-Name"]')) return;
+    resetReportIfNeeded();
 
     const info = extractTweetInfo(article);
     revealAuthorReplyTarget(article, info);
@@ -1213,8 +1314,13 @@
         }
       }
       if (wasBlocked) blockedCount = Math.max(0, blockedCount - 1);
+      delete article.dataset.tvReportScanned;
     }
     article.dataset.bbTweetKey = tweetKey;
+    if (article.dataset.tvReportScanned !== '1') {
+      article.dataset.tvReportScanned = '1';
+      recordReportScan();
+    }
 
     if (article.dataset.bbBlocked === '1') return;
     if (article.dataset.bbRevealed === '1') return;
@@ -1404,6 +1510,8 @@
     const wasStatus = lastPath.includes('/status/');
     const isStatus = currentPath.includes('/status/');
     lastPath = currentPath;
+    resetReportIfNeeded();
+    updateReport();
 
     if (isStatus && !wasStatus) {
       // Navigated to a status page
@@ -1540,6 +1648,7 @@
       const result = scoreTweet(info);
       if (result.score >= settings.threshold || result.score >= 99) {
         blockedCount++;
+        recordReportHit(result, 'api');
         if (settings.debug) {
           debugStats.apiBlocked++;
           console.log('%c[BB-API] %c' + info.handle + '%c score=' + result.score + ' %cFILTERED',
@@ -1665,6 +1774,8 @@
     console.log('%cThreadveil v1.0 %cloaded %c| ' + new Date().toLocaleTimeString(),
       'color:#1d9bf0;font-weight:bold;', 'color:#ccc;', 'color:#888;');
 
+    resetReportIfNeeded();
+    updateReport();
     loadSettings();
     observe();
     setupSelectionHandler();

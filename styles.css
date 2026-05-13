@@ -22,6 +22,112 @@
 }
 .bb-stats-badge:hover { opacity: 1; }
 
+/* ==================== Thread cleanup report ==================== */
+.tv-report {
+  position: fixed;
+  right: 16px;
+  bottom: 18px;
+  z-index: 100000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #e7edf2;
+}
+
+.tv-report-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 8px 11px;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  border-radius: 999px;
+  background: rgba(15, 20, 25, 0.86);
+  color: #e7edf2;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.tv-report-count {
+  color: #5eead4;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.tv-report-label {
+  color: #a7b4c0;
+  font-size: 12px;
+}
+
+.tv-report-panel {
+  display: none;
+  width: 260px;
+  margin-bottom: 8px;
+  padding: 12px;
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  border-radius: 10px;
+  background: rgba(15, 20, 25, 0.94);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.tv-report-open .tv-report-panel {
+  display: block;
+}
+
+.tv-report-title {
+  font-weight: 750;
+  margin-bottom: 10px;
+}
+
+.tv-report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tv-report-grid div {
+  padding: 7px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+
+.tv-report-grid b {
+  display: block;
+  color: #5eead4;
+  font-size: 15px;
+}
+
+.tv-report-grid span {
+  color: #a7b4c0;
+  font-size: 11px;
+}
+
+.tv-report-reason {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
+.tv-report-reason span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-report-reason b {
+  color: #5eead4;
+}
+
+.tv-report-empty {
+  color: #7d8b97;
+  font-size: 12px;
+}
+
 /* ==================== Video download button ==================== */
 .bb-media-download-host {
   position: relative !important;
