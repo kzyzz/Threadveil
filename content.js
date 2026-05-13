@@ -10,11 +10,37 @@
     customKeywords: [],
     rules: [],
     signalWeights: {},
+    ruleConfig: {},
   };
+  const DEFAULT_RULE_CONFIG = (window.ThreadveilDefaults && window.ThreadveilDefaults.ruleConfig) || {};
   let blockedCount = 0;
   let badgeEl = null;
   let mainAuthorHandle = '';
   const tweetMediaCache = new Map();
+
+  function mergeRuleConfig(config) {
+    const merged = Object.assign({}, DEFAULT_RULE_CONFIG, config || {});
+    ['externalLinkPatterns', 'templatePhrases', 'templateRegexes', 'extremeKeywords'].forEach(key => {
+      merged[key] = Array.isArray(merged[key]) ? merged[key] : [];
+    });
+    merged.suggestiveEmojiChars = merged.suggestiveEmojiChars || '';
+    return merged;
+  }
+
+  function getRuleConfig() {
+    if (!settings.ruleConfig) settings.ruleConfig = {};
+    return settings.ruleConfig;
+  }
+
+  function makePatternRegex(patterns) {
+    const clean = (patterns || []).map(p => String(p || '').trim()).filter(Boolean);
+    if (!clean.length) return null;
+    try {
+      return new RegExp(clean.join('|'), 'i');
+    } catch (e) {
+      return null;
+    }
+  }
 
   // ======================== SIGNAL DEFINITIONS ========================
   // Each signal returns { hit: bool, weight: number, detail: string }
@@ -121,8 +147,9 @@
 
     // Unusually high number of emojis (8+) in a single reply
     emojiOverload(info) {
+      const cfg = getRuleConfig();
       const emojiCount = countEmojis(info.text);
-      if (emojiCount >= 8) {
+      if (emojiCount >= (Number(cfg.emojiOverloadMin) || 8)) {
         return { hit: true, weight: 5, detail: '大量emoji(' + emojiCount + ')' };
       }
       return null;
@@ -147,6 +174,10 @@
 
     // Suggestive emoji: 💘🍑🥵💋👉👌🔞🔥👙🌸
     hornyEmoji(info) {
+      const chars = getRuleConfig().suggestiveEmojiChars || '';
+      if (chars && Array.from(chars).some(ch => info.text.includes(ch))) {
+        return { hit: true, weight: 2, detail: '暗示性 emoji' };
+      }
       const re = /[💘🍑🥵💋👉👌🔞🔥👙🌸🍆💦👅🫦🫣😈😏😳😙😗😘😝😚😋🤤🥳❤️‍🔥❣️🍓✈️🌡️😵🎲🅿️🥌🫧💗💓💕💖💞🫦🫧💋💄👙👄💅]/u;
       if (re.test(info.text)) {
         return { hit: true, weight: 2, detail: '暗示性表情' };
@@ -156,8 +187,9 @@
 
     // Short reply (<= 4 chars, excluding spaces)
     shortReply(info) {
+      const cfg = getRuleConfig();
       const clean = info.text.replace(/\s/g, '');
-      if (clean.length > 0 && clean.length <= 4) {
+      if (clean.length > 0 && clean.length <= (Number(cfg.shortReplyMaxChars) || 4)) {
         return { hit: true, weight: 1, detail: '短句回复' };
       }
       return null;
@@ -165,6 +197,12 @@
 
     // External platform links (Chinese + foreign spam platforms)
     externalLinks(info) {
+      const cfg = getRuleConfig();
+      const configured = makePatternRegex(cfg.externalLinkPatterns);
+      if (configured && configured.test(info.text)) {
+        return { hit: true, weight: 5, detail: '外部链接' };
+      }
+      if (cfg.useDefaultExternalLinks === false) return null;
       const re = /t\.me\/|t\.cn\/|bit\.ly\/|linktr\.ee\/|beacons\.ai\/|onlyfans\.com|fansly\.com|discord\.gg\/|m\.e\/|pan\.quark\.cn\/|pan\.baidu\.com\/|lanzou\w\.com\/|weixin\.qq\.com\/|v\.douyin\.com\/|xhslink\.com/i;
       if (re.test(info.text)) {
         return { hit: true, weight: 5, detail: '外部链接' };
@@ -174,9 +212,12 @@
 
     // High emoji density in tweet text
     highEmojiDensity(info) {
+      const cfg = getRuleConfig();
       const emojiCount = countEmojis(info.text);
       const len = info.text.replace(/\s/g, '').length || 1;
-      if (emojiCount >= 3 && emojiCount / len > 0.25) {
+      const min = Number(cfg.highEmojiDensityMin) || 3;
+      const ratio = Number(cfg.highEmojiDensityRatio) || 0.25;
+      if (emojiCount >= min && emojiCount / len > ratio) {
         return { hit: true, weight: 3, detail: 'emoji密度过高' };
       }
       return null;
@@ -184,9 +225,12 @@
 
     // Emoji bomb: 3+ emojis in a short reply (strong spam signal)
     emojiBomb(info) {
+      const cfg = getRuleConfig();
       const emojiCount = countEmojis(info.text);
       const cleanLen = info.text.replace(/\s/g, '').length;
-      if (emojiCount >= 3 && cleanLen < 60) {
+      const min = Number(cfg.emojiBombMin) || 3;
+      const maxLen = Number(cfg.emojiBombMaxChars) || 60;
+      if (emojiCount >= min && cleanLen < maxLen) {
         return { hit: true, weight: 5, detail: 'emoji轰炸' };
       }
       return null;
@@ -203,11 +247,14 @@
 
     // Single @mention + short/emoji content = promotion pattern
     promotionMention(info) {
+      const cfg = getRuleConfig();
       const mentions = (info.text.match(/@\w{2,}/g) || []);
       if (mentions.length !== 1) return null;
       const clean = info.text.replace(/\s/g, '');
       const emojiCount = countEmojis(info.text);
-      if (clean.length < 80 && emojiCount >= 2) {
+      const maxLen = Number(cfg.promotionMentionMaxChars) || 80;
+      const minEmoji = Number(cfg.promotionMentionMinEmoji) || 2;
+      if (clean.length < maxLen && emojiCount >= minEmoji) {
         return { hit: true, weight: 4, detail: '引流@' + mentions[0] };
       }
       return null;
@@ -235,9 +282,27 @@
 
     // Known bot template phrases (substring + regex), check text + display name
     templatePhrases(info) {
+      const cfg = getRuleConfig();
       const targets = [info.text, info.displayName];
       for (const target of targets) {
         const lower = target.toLowerCase();
+
+        for (const phrase of cfg.templatePhrases || []) {
+          const p = String(phrase || '').trim().toLowerCase();
+          if (p && lower.includes(p)) {
+            return { hit: true, weight: 4, detail: '模板文案' };
+          }
+        }
+
+        for (const pattern of cfg.templateRegexes || []) {
+          try {
+            if (new RegExp(pattern, 'i').test(target)) {
+              return { hit: true, weight: 4, detail: '模板正则' };
+            }
+          } catch (e) { /* invalid user regex */ }
+        }
+
+        if (cfg.useDefaultTemplates === false) continue;
 
         // Substring matches
         const templates = [
@@ -291,8 +356,9 @@
 
     // Any URL in a short reply (generic link spam)
     anyLink(info) {
+      const cfg = getRuleConfig();
       const urlRe = /https?:\/\/\S+/i;
-      if (urlRe.test(info.text) && info.text.replace(/\s/g, '').length < 80) {
+      if (urlRe.test(info.text) && info.text.replace(/\s/g, '').length < (Number(cfg.anyLinkMaxChars) || 80)) {
         return { hit: true, weight: 4, detail: '短回复含链接' };
       }
       return null;
@@ -300,10 +366,14 @@
 
     // Extreme sexual/NSFW keywords in display name or text
     extremeContent(info) {
+      const cfg = getRuleConfig();
+      const keywords = (cfg.useDefaultExtremeKeywords === false)
+        ? (cfg.extremeKeywords || [])
+        : Array.from(new Set([...(cfg.extremeKeywords || []), ...EXTREME_KW]));
       const targets = [info.displayName, info.text];
       for (const t of targets) {
         const lower = t.toLowerCase();
-        for (const kw of EXTREME_KW) {
+        for (const kw of keywords) {
           if (lower.includes(kw.toLowerCase())) {
             return { hit: true, weight: 6, detail: '敏感内容: ' + kw };
           }
@@ -352,7 +422,7 @@
   function loadSettings() {
     chrome.storage.sync.get([
       'enabled', 'threshold', 'useHeuristic', 'debug',
-      'customKeywords', 'rules', 'signalWeights'
+      'customKeywords', 'rules', 'signalWeights', 'ruleConfig'
     ], (data) => {
       settings.enabled = data.enabled !== undefined ? data.enabled : true;
       settings.threshold = data.threshold || 5;
@@ -361,6 +431,7 @@
       settings.customKeywords = data.customKeywords || [];
       settings.rules = (data.rules || []).filter(r => r.enabled !== false);
       settings.signalWeights = data.signalWeights || {};
+      settings.ruleConfig = mergeRuleConfig(data.ruleConfig);
       if (settings.debug) {
         console.log('%cThreadveil debug enabled %cThreshold=' + settings.threshold,
           'color:#0f0;font-size:14px;', 'color:#ccc;');
@@ -387,6 +458,7 @@
     if (changes.customKeywords) settings.customKeywords = changes.customKeywords.newValue || [];
     if (changes.rules) settings.rules = (changes.rules.newValue || []).filter(r => r.enabled !== false);
     if (changes.signalWeights) settings.signalWeights = changes.signalWeights.newValue || {};
+    if (changes.ruleConfig) settings.ruleConfig = mergeRuleConfig(changes.ruleConfig.newValue);
 
     if (changes.enabled && changes.enabled.newValue === false) {
       showBadgesOnBlocked();
